@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Screener</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --card: #1c2330; --line: #2a3342; --line-2: #374151;
+    --text: #e6edf3; --muted: #8b949e; --faint: #6e7681;
+    --accent: #6366f1; --accent-2: #818cf8; --accent-soft: rgba(99,102,241,.12);
+    --green: #22c55e; --green-bg: rgba(34,197,94,.12);
+    --gray: #f59e0b; --gray-bg: rgba(245,158,11,.12);
+    --red: #ef4444; --red-bg: rgba(239,68,68,.12);
+    --fail: #94a3b8; --fail-bg: rgba(148,163,184,.12);
+    --radius: 12px;
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px 80px; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+  h1 span { color: var(--accent-2); }
+  .sub { color: var(--muted); }
+  .banner { border: 1px solid var(--red); background: var(--red-bg); color: #fecaca; padding: 12px 14px;
+            border-radius: 10px; margin-bottom: 18px; display: none; }
+  .banner.show { display: block; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; min-width: 0; }
+  .panel h2 { font-size: 12px; letter-spacing: .12em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  .drop { border: 2px dashed var(--accent); border-radius: 10px; padding: 26px 16px; text-align: center;
+          background: var(--accent-soft); transition: background .15s, border-color .15s; cursor: pointer; }
+  .drop.over { background: rgba(99,102,241,.25); border-color: var(--accent-2); }
+  .drop strong { display: block; font-size: 15px; margin-bottom: 4px; }
+  .drop small { color: var(--muted); }
+  .btns { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line-2);
+           background: var(--card); color: var(--text); padding: 7px 13px; }
+  button:hover:not(:disabled) { border-color: var(--accent-2); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .warn { color: var(--gray); font-size: 13px; margin-top: 10px; display: none; }
+  .warn.show { display: block; }
+  .files { list-style: none; margin: 14px 0 0; padding: 0; max-height: 330px; overflow-y: auto; }
+  .files li { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--line); }
+  .files li:last-child { border-bottom: 0; }
+  .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fsize { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .fstat { font-size: 12px; color: var(--muted); max-width: 45%; text-align: right; overflow: hidden;
+           text-overflow: ellipsis; white-space: nowrap; }
+  .fstat.ok { color: var(--green); } .fstat.bad { color: var(--red); } .fstat.busy { color: var(--accent-2); }
+  .count { color: var(--faint); font-size: 12px; margin-top: 8px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 5px; }
+  label + textarea { margin-bottom: 12px; }
+  textarea { width: 100%; resize: vertical; background: var(--bg); color: var(--text); border: 1px solid var(--line-2);
+             border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 13px; }
+  textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .run { margin: 22px 0 8px; }
+  .primary { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; background: var(--accent);
+             border-color: var(--accent); color: white; border-radius: 10px; }
+  .primary:hover:not(:disabled) { background: var(--accent-2); }
+  .bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+  .bar div { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .ptext { color: var(--muted); font-size: 13px; margin-top: 6px; min-height: 20px; }
+  .ptext.err { color: #fca5a5; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+          padding: 3px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid transparent; }
+  .pill.GREEN { color: var(--green); background: var(--green-bg); border-color: rgba(34,197,94,.35); }
+  .pill.GRAY { color: var(--gray); background: var(--gray-bg); border-color: rgba(245,158,11,.35); }
+  .pill.RED { color: var(--red); background: var(--red-bg); border-color: rgba(239,68,68,.35); }
+  .pill.FAILED { color: var(--fail); background: var(--fail-bg); border-color: rgba(148,163,184,.35); }
+  .pill.DUP { color: var(--accent-2); background: var(--accent-soft); border-color: rgba(129,140,248,.35); }
+  .pill b { font-size: 13px; }
+  #results { margin-top: 30px; display: none; }
+  #results.show { display: block; }
+  .rhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .rhead h2 { font-size: 16px; margin: 0 8px 0 0; }
+  .rhead .spacer { flex: 1; }
+  .dl { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .runerr { color: #fca5a5; margin-bottom: 12px; }
+  .cards { display: grid; gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--fail); border-radius: var(--radius); padding: 16px 18px; }
+  .card.GREEN { border-left-color: var(--green); } .card.GRAY { border-left-color: var(--gray); }
+  .card.RED { border-left-color: var(--red); } .card.dup { opacity: .6; }
+  .ctop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ctop h3 { margin: 0; font-size: 16px; }
+  .rank { color: var(--faint); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .meta { color: var(--muted); font-size: 13px; margin: 3px 0 10px; }
+  .meta a { color: var(--accent-2); text-decoration: none; }
+  .sec { margin-top: 8px; }
+  .sec h4 { margin: 0 0 2px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .sec p { margin: 0; }
+  .verify { margin-top: 10px; background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.25); border-radius: 8px; padding: 9px 12px; }
+  .verify h4 { color: var(--gray); margin: 0 0 4px; font-size: 12px; }
+  .verify ul, .mh { margin: 0; padding-left: 18px; }
+  .verify li { margin: 2px 0; }
+  details { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  summary { cursor: pointer; color: var(--faint); }
+  .mh { list-style: none; padding: 6px 0 0; }
+  .mh li { margin: 3px 0; }
+  .mh .y { color: var(--green); } .mh .n { color: var(--red); } .mh .u { color: var(--gray); }
+  .fn { color: var(--faint); font-size: 12px; margin-left: auto; }
+  .toggle { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; cursor: pointer; user-select: none; }
+  .toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .track { width: 38px; height: 22px; border-radius: 999px; background: var(--line-2); position: relative; flex: none; transition: background .15s; }
+  .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .toggle input:checked + .track { background: var(--accent); }
+  .toggle input:checked + .track::after { transform: translateX(16px); }
+  .toggle input:focus-visible + .track { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  .toggle strong { font-size: 14px; }
+  .toggle small { color: var(--muted); display: block; font-size: 12px; }
+  .agent { margin-top: 12px; border-top: 1px dashed var(--line-2); padding-top: 10px; }
+  .agent > h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-2); }
+  .act { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+  .acthead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .act .why { color: var(--muted); font-size: 12px; margin: 6px 0; }
+  .act .out { white-space: pre-wrap; font-size: 13px; }
+  .copy { margin-left: auto; padding: 2px 9px; font-size: 12px; }
+  .pill.T-draft_outreach { color: var(--green); background: var(--green-bg); }
+  .pill.T-generate_followup_questions { color: var(--accent-2); background: var(--accent-soft); }
+  .pill.T-write_rejection_note { color: var(--red); background: var(--red-bg); }
+  .pill.T-flag_for_human_review { color: var(--gray); background: var(--gray-bg); }
+  .muted { color: var(--faint); font-size: 12px; }
+  .empty { color: var(--faint); text-align: center; padding: 24px 0 6px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>CV <span>Screener</span></h1>
+    <div class="sub">Upload CVs, define the role, get a triaged shortlist.</div>
+  </header>
+  <div class="banner" id="banner"></div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>1 · UPLOAD CVS</h2>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop CV files here or click to browse">
+        <strong>Drop CVs here</strong>
+        <small>PDF, DOCX or TXT · up to 50 files</small>
+      </div>
+      <div class="btns">
+        <button id="browse">Browse files</button>
+        <button id="folder">Upload folder</button>
+        <button id="clear">Clear</button>
+      </div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.docx,.txt" hidden>
+      <input type="file" id="folderInput" webkitdirectory multiple hidden>
+      <div class="warn" id="warn"></div>
+      <ul class="files" id="files"></ul>
+      <div class="empty" id="noFiles">No files yet.</div>
+      <div class="count" id="count"></div>
+    </section>
+
+    <section class="panel">
+      <h2>2 · JOB SPEC</h2>
+      <label for="jd">Job description</label>
+      <textarea id="jd" rows="5" placeholder="Senior ML Engineer to build and ship computer-vision models…"></textarea>
+      <label for="must">Must-haves <span style="color:var(--faint)">(one per line, each pass/fail)</span></label>
+      <textarea id="must" rows="4" placeholder="5+ years Python&#10;Computer vision experience&#10;Shipped ML models to production"></textarea>
+      <label for="nice">Nice-to-haves</label>
+      <textarea id="nice" rows="3" placeholder="PyTorch&#10;MLOps / Kubernetes"></textarea>
+      <label for="flags">Red flags <span style="color:var(--faint)">(optional)</span></label>
+      <textarea id="flags" rows="2" placeholder="Job hopping (<1 year per role)"></textarea>
+    </section>
+  </div>
+
+  <div class="run">
+    <label class="toggle" for="agentToggle">
+      <input type="checkbox" id="agentToggle" checked>
+      <span class="track"></span>
+      <span><strong>Run agent</strong></span>
+    </label>
+    <button class="primary" id="go">Screen candidates</button>
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="ptext" id="ptext"></div>
+  </div>
+
+  <section id="results">
+    <div class="rhead">
+      <h2>Results</h2>
+      <div id="summary" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <div class="spacer"></div>
+      <button class="dl" id="dl" disabled>⬇ Download Excel</button>
+    </div>
+    <div class="runerr" id="runerr"></div>
+    <div class="cards" id="cards"></div>
+  </section>
+</div>
+
+<script>
+const MAX_FILES = 50;
+const EXT = /\.(pdf|docx|txt)$/i;
+const ORDER = { GREEN: 0, GRAY: 1, RED: 2, 'PROCESSING FAILED': 3 };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const newJobId = () => (crypto.randomUUID ? crypto.randomUUID() : crypto.getRandomValues(new Uint8Array(16)).join(''));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+let picked = [];        // [{file, status, cls}]
+let busy = false;
+let sheetUrl = null;
+
+function fmtSize(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(0) + ' KB';
+  return (n / 1048576).toFixed(1) + ' MB';
+}
+const pillClass = (v) => (v === 'PROCESSING FAILED' ? 'FAILED' : v);
+const pillLabel = (v) => (v === 'PROCESSING FAILED' ? 'FAILED' : v);
+
+function addFiles(list) {
+  if (busy) return;
+  const all = Array.from(list);
+  const ok = all.filter((f) => EXT.test(f.name));
+  const skipped = all.length - ok.length;
+  const have = new Set(picked.map((p) => p.file.name + ':' + p.file.size));
+  const fresh = ok.filter((f) => !have.has(f.name + ':' + f.size));
+  const room = MAX_FILES - picked.length;
+  const msgs = [];
+  if (fresh.length > room) msgs.push(`50-file cap: ${fresh.length - Math.max(room, 0)} file(s) not added.`);
+  if (skipped) msgs.push(`${skipped} unsupported file(s) ignored (PDF/DOCX/TXT only).`);
+  fresh.slice(0, Math.max(room, 0)).forEach((file) => picked.push({ file, status: 'ready', cls: '' }));
+  $('warn').textContent = msgs.join(' ');
+  $('warn').classList.toggle('show', msgs.length > 0);
+  renderFiles();
+}
+
+function renderFiles() {
+  $('files').innerHTML = picked.map((p, i) => {
+    const stat = p.verdict
+      ? `<span class="pill ${pillClass(p.verdict)}">${esc(pillLabel(p.verdict))}${p.dup ? ' · DUP' : ''}</span>`
+      : `<span class="fstat ${p.cls}" title="${esc(p.status)}">${esc(p.status)}</span>`;
+    return `<li><span class="fname" title="${esc(p.file.name)}">${esc(p.file.name)}</span>
+      <span class="fsize">${fmtSize(p.file.size)}</span>${stat}</li>`;
+  }).join('');
+  $('noFiles').style.display = picked.length ? 'none' : 'block';
+  $('count').textContent = picked.length ? `${picked.length} / ${MAX_FILES} files` : '';
+}
+
+function setProgress(done, total, text, isErr) {
+  $('barFill').style.width = total ? Math.round((100 * done) / total) + '%' : '0%';
+  $('ptext').textContent = text || '';
+  $('ptext').classList.toggle('err', !!isErr);
+}
+
+function setBusy(b) {
+  busy = b;
+  ['go', 'browse', 'folder', 'clear', 'agentToggle'].forEach((id) => ($(id).disabled = b));
+  $('go').textContent = b ? 'Screening…' : 'Screen candidates';
+}
+
+async function api(url, opts) {
+  const res = await fetch(url, opts);
+  let body = null;
+  try { body = await res.json(); } catch (_) { /* non-JSON */ }
+  if (!res.ok) throw new Error((body && body.error) || `HTTP ${res.status} from ${url}`);
+  return body;
+}
+
+function applyServerFiles(files) {
+  files.forEach((sf) => {
+    const p = picked[sf.index - 1];
+    if (!p) return;
+    const v = sf.result && sf.result.verdict;
+    if (sf.status && sf.status.startsWith('✗')) { p.status = sf.status; p.cls = 'bad'; p.verdict = null; }
+    else if (sf.status === '⏳ screening' || sf.status === '🤖 agent') { p.status = sf.status; p.cls = 'busy'; p.verdict = null; }
+    else if (v && sf.status === v) { p.verdict = v; p.dup = !!sf.deduped; }
+    else if (sf.status) { p.status = sf.status; p.cls = 'ok'; }
+  });
+  renderFiles();
+}
+
+async function pollStatus(jobId) {
+  let failures = 0;
+  while (true) {
+    let st;
+    try {
+      st = await api(`/api/status/${encodeURIComponent(jobId)}`);
+      failures = 0;
+    } catch (e) {
+      failures++;
+      if (failures >= 25) throw new Error('Lost connection to the server: ' + e.message);
+      setProgress(0, 0, `Connection hiccup (${e.message}) — retrying ${failures}/25…`, true);
+      await sleep(1200);
+      continue;
+    }
+    applyServerFiles(st.files);
+    if (st.status === 'agent') setProgress(st.agent_progress, st.agent_total, `🤖 Agent: ${st.agent_progress} / ${st.agent_total} candidates`);
+    else setProgress(st.progress, st.total, `${st.progress} / ${st.total} processed`);
+    if (st.status === 'done') return st;
+    await sleep(1200);
+  }
+}
+
+async function runScreening() {
+  const spec = { job_description: $('jd').value.trim(), must_haves: $('must').value,
+                 nice_to_haves: $('nice').value, red_flags: $('flags').value };
+  if (!picked.length) return setProgress(0, 0, 'Add at least one CV first.', true);
+  if (!spec.job_description) return setProgress(0, 0, 'Add a job description.', true);
+  if (!spec.must_haves.trim()) return setProgress(0, 0, 'Add at least one must-have (one per line).', true);
+
+  setBusy(true);
+  $('results').classList.remove('show');
+  sheetUrl = null;
+  picked.forEach((p) => { p.status = 'uploading…'; p.cls = 'busy'; p.verdict = null; p.dup = false; });
+  renderFiles();
+  try {
+    const jobId = newJobId();
+    setProgress(0, 0, `Uploading ${picked.length} file(s) and extracting text…`);
+    const fd = new FormData();
+    fd.append('job_id', jobId);
+    picked.forEach((p) => fd.append('files', p.file, p.file.name));
+    const up = await api('/api/upload', { method: 'POST', body: fd });
+    applyServerFiles(up.files);
+
+    setProgress(0, picked.length, 'Starting screening…');
+    await api('/api/screen', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                               body: JSON.stringify({ job_id: jobId, ...spec, run_agent: $('agentToggle').checked }) });
+    const st = await pollStatus(jobId);
+    renderResults(st);
+    setProgress(st.total, st.total, `${st.total} / ${st.total} processed — done`);
+  } catch (e) {
+    setProgress(0, 0, 'Error: ' + e.message, true);
+    picked.forEach((p) => { if (!p.verdict && p.cls === 'busy') { p.status = 'ready'; p.cls = ''; } });
+    renderFiles();
+  } finally {
+    setBusy(false);
+  }
+}
+
+let copyTexts = [];
+function agentHtml(a) {
+  if (!a) return '';
+  if (a.skipped) return `<div class="agent"><span class="muted">🤖 Agent skipped (${esc(a.skipped)})</span></div>`;
+  const acts = (a.actions || []).map((x) => {
+    copyTexts.push(x.output);
+    return `<div class="act"><div class="acthead"><span class="muted">${x.step}.</span>
+      <span class="pill T-${esc(x.tool)}">${esc(x.label)}</span>
+      <button class="copy" data-copy="${copyTexts.length - 1}">Copy</button></div>
+      <div class="why">Why: ${esc(x.reason)}</div><div class="out">${esc(x.output)}</div></div>`;
+  }).join('');
+  const err = a.error ? `<div class="runerr" style="margin:8px 0 0">Agent error: ${esc(a.error)}</div>` : '';
+  return `<div class="agent"><h4>🤖 Agent actions</h4>${acts}${err}</div>`;
+}
+
+function renderResults(st) {
+  copyTexts = [];
+  const files = st.files.slice().sort((a, b) =>
+    (a.deduped - b.deduped) || ((ORDER[a.result?.verdict] ?? 3) - (ORDER[b.result?.verdict] ?? 3)) || (a.index - b.index));
+  const counts = { GREEN: 0, GRAY: 0, RED: 0, 'PROCESSING FAILED': 0 };
+  files.forEach((f) => { if (!f.deduped) counts[f.result?.verdict ?? 'PROCESSING FAILED']++; });
+  $('summary').innerHTML = Object.entries(counts).map(([v, n]) =>
+    `<span class="pill ${pillClass(v)}">${pillLabel(v)} <b>${n}</b></span>`).join('') +
+    `<span class="pill DUP">DEDUPED <b>${st.deduped || 0}</b></span>`;
+  $('runerr').textContent = st.error || '';
+  sheetUrl = st.sheet && st.sheet.url;
+  $('dl').disabled = !sheetUrl;
+
+  let rank = 0;
+  $('cards').innerHTML = files.map((f) => {
+    const r = f.result || {};
+    const v = r.verdict || 'PROCESSING FAILED';
+    const failed = v === 'PROCESSING FAILED';
+    if (!f.deduped && !failed) rank++;
+    const meta = [r.current_title, r.current_company].filter(Boolean).map(esc).join(' · ');
+    const contact = [r.email && `<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`, esc(r.phone),
+                     r.years_experience != null ? `${esc(r.years_experience)} yrs exp` : ''].filter(Boolean).join(' · ');
+    const qm = (r.question_marks || []).map((q) => `<li>${esc(q)}</li>`).join('');
+    const mh = (r.must_have_results || []).map((m) => {
+      const [c, s] = m.met === true ? ['y', '✓'] : m.met === false ? ['n', '✗'] : ['u', '?'];
+      return `<li><span class="${c}">${s}</span> <strong>${esc(m.requirement)}</strong>${m.evidence ? ' — ' + esc(m.evidence) : ''}</li>`;
+    }).join('');
+    return `<article class="card ${pillClass(v)}${f.deduped ? ' dup' : ''}">
+      <div class="ctop">
+        ${!f.deduped && !failed ? `<span class="rank">#${rank}</span>` : ''}
+        <h3>${esc(r.name || f.filename)}</h3>
+        <span class="pill ${pillClass(v)}">${esc(pillLabel(v))}</span>
+        ${f.deduped ? `<span class="pill DUP">DUPLICATE of ${esc(f.duplicate_of_name || '#' + f.duplicate_of)}</span>` : ''}
+        ${r.verdict_adjusted_from ? `<span class="pill FAILED" title="Model said ${esc(r.verdict_adjusted_from)}, but its own must-have results require ${esc(v)}">adjusted from ${esc(r.verdict_adjusted_from)}</span>` : ''}
+        <span class="fn">${esc(f.filename)}</span>
+      </div>
+      <div class="meta">${[meta, contact].filter(Boolean).join('<br>') || '&nbsp;'}</div>
+      ${failed ? `<div class="sec"><h4>Processing failed</h4><p>${esc(r.error || f.error || 'Unknown error')}</p></div>` : `
+        ${r.why_fit ? `<div class="sec"><h4>Why fit</h4><p>${esc(r.why_fit)}</p></div>` : ''}
+        ${r.why_not_fit ? `<div class="sec"><h4>Why not fit</h4><p>${esc(r.why_not_fit)}</p></div>` : ''}
+        ${qm ? `<div class="verify"><h4>⚠ Things to verify</h4><ul>${qm}</ul></div>` : ''}
+        ${mh ? `<details><summary>Must-have checklist</summary><ul class="mh">${mh}</ul></details>` : ''}`}
+      ${agentHtml(f.agent)}
+    </article>`;
+  }).join('');
+  $('results').classList.add('show');
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// --- wiring ---
+const drop = $('drop');
+['dragenter', 'dragover'].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', (ev) => addFiles(ev.dataTransfer.files));
+drop.addEventListener('click', () => !busy && $('fileInput').click());
+drop.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); $('fileInput').click(); } });
+$('browse').onclick = () => $('fileInput').click();
+$('folder').onclick = () => $('folderInput').click();
+$('fileInput').onchange = (e) => { addFiles(e.target.files); e.target.value = ''; };
+$('folderInput').onchange = (e) => { addFiles(e.target.files); e.target.value = ''; };
+$('clear').onclick = () => { picked = []; $('warn').classList.remove('show'); setProgress(0, 0, ''); renderFiles(); };
+$('go').onclick = runScreening;
+$('cards').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-copy]');
+  if (!b) return;
+  const text = copyTexts[+b.dataset.copy] || '';
+  const done = () => { b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy'), 1200); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => {});
+  else { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
+         try { document.execCommand('copy'); done(); } catch (_) {} t.remove(); }
+});
+try { const v = localStorage.getItem('runAgent'); if (v !== null) $('agentToggle').checked = v === '1'; } catch (_) {}
+$('agentToggle').onchange = (e) => { try { localStorage.setItem('runAgent', e.target.checked ? '1' : '0'); } catch (_) {} };
+$('dl').onclick = () => { if (sheetUrl) window.location.href = sheetUrl; };
+
+fetch('/api/config').then((r) => r.json()).then((c) => {
+  if (c.error) { $('banner').textContent = '⚠ ' + c.error; $('banner').classList.add('show'); }
+}).catch(() => {});
+renderFiles();
+</script>
+</body>
+</html>

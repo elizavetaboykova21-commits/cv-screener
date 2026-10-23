@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: cv-screener
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # One worker: job state lives in memory and screening runs in background threads.
+    startCommand: gunicorn app:app --workers 1 --threads 8 --timeout 300 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: LLM_BASE_URL
+        value: https://api.openai.com/v1
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      - key: LLM_API_KEY
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: MAX_CVS_PER_DAY
+        value: "100"
+      - key: RUN_RETENTION_HOURS
+        value: "24"
