@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "").strip().rstrip("/")
-LLM_API_KEY = os.environ.get("LLM_API_KEY", "").strip()
+# Keys never contain whitespace; drop any stray spaces/line breaks from copy-paste.
+LLM_API_KEY = "".join(os.environ.get("LLM_API_KEY", "").split())
 LLM_MODEL = os.environ.get("LLM_MODEL", "").strip() or "gpt-4o-mini"
 LLM_TIMEOUT = int(os.environ.get("LLM_TIMEOUT", "180"))
 LLM_MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", "4096"))
